@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "139096397361",
+    "project_id": "emtahnatapp",
+    "storage_bucket": "emtahnatapp.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:139096397361:android:a1a780db540a28b7172710",
+        "android_client_info": {
+          "package_name": "com.emtahnatapp.eg"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "139096397361-ci23pmml2hrckcq4dc7njhvua75sl01k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAG5LOrxP7WOA6d53lrn0_mEIiX14ndWQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "139096397361-ci23pmml2hrckcq4dc7njhvua75sl01k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
