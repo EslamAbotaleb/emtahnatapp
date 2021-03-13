@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +13,6 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/foundation.dart' show kReleaseMode;
 
 void main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
@@ -21,78 +22,58 @@ void main() async {
   //   FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
   // }
 // enableInDevMode
-if (!kReleaseMode) FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+  if (!kReleaseMode)
+    FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
 // Pass all uncaught errors from the framework to Crashlytics.
-FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
-runZoned(() {
-runApp(EmtahnatApp());
-}, onError: (error) {
-  // print(error);
-   print("It's not so bad but good in this also not so big.");
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
+  runZoned(() {
+    runApp(EmtahnatApp());
+  }, onError: (error) {
+    // print(error);
+    print("It's not so bad but good in this also not so big.");
     print("Problem still exists: $error");
     // FirebaseCrashlytics.instance.recordFlutterError;
-});
+  });
 
   // FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
 // runApp(
 //   EmtahnatApp()
 //   );
-} 
+}
 
-  class EmtahnatApp extends StatefulWidget {
+class EmtahnatApp extends StatefulWidget {
   @override
   _EmtahnatAppState createState() => _EmtahnatAppState();
 }
 
 class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
   @override
-  void initState() { 
+  void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // FirebaseCrashlytics.instance.crash();
   }
- @override
+
+  @override
   void dispose() {
     // TODO: implement dispose
     super.dispose();
     WidgetsBinding.instance.removeObserver(this);
-    
   }
- 
+
   @override
   Widget build(BuildContext context) {
-
-    
     return GestureDetector(
-      onTap: () {
-        FocusScopeNode currentFocus = FocusScope.of(context);
-        if (!currentFocus.hasPrimaryFocus) {
-          currentFocus.unfocus();
-        }
-      },
-   child:  MaterialApp(
-  debugShowCheckedModeBanner: false,
-
-  home: WebViewExample())
-    );
- 
+        onTap: () {
+          FocusScopeNode currentFocus = FocusScope.of(context);
+          if (!currentFocus.hasPrimaryFocus) {
+            currentFocus.unfocus();
+          }
+        },
+        child: MaterialApp(
+            debugShowCheckedModeBanner: false, home: WebViewExample()));
   }
 }
-
-// const String kNavigationExamplePage = '''
-// <!DOCTYPE html><html>
-// <head><title>Navigation Delegate Example</title></head>
-// <body>
-// <p>
-// The navigation delegate is set to block navigation to the youtube website.
-// </p> post
-// <ul>
-// <ul><a href="https://www.youtube.com/">https://www.youtube.com/</a></ul>
-// <ul><a href="https://www.google.com/">https://www.google.com/</a></ul>
-// </ul>
-// </body>
-// </html>
-// ''';
 
 class WebViewExample extends StatefulWidget {
   @override
@@ -100,79 +81,130 @@ class WebViewExample extends StatefulWidget {
 }
 
 class _WebViewExampleState extends State<WebViewExample> {
-  final Completer<WebViewController> _controller =
-      Completer<WebViewController>();
+  final Completer<WebViewController> _controller = Completer<WebViewController>();
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
-  @override  
+  @override
   void initState() {
     super.initState();
 
-   
-
     SystemChannels.textInput.invokeMethod('TextInput.hide');
 
-      disableCapture();
-      configureCallbacks();
-      subscribeToTopic();
+    disableCapture();
+    configureCallbacks();
+    subscribeToTopic();
     // if (Platform.isAndroid) WebView.platform = SurfaceAndroidWebView();
   }
 
-void configureCallbacks() {
-  _firebaseMessaging.configure(
-    onMessage: (message) async {
+  void configureCallbacks() {
+    _firebaseMessaging.configure(onMessage: (message) async {
       print('onMessage:$message');
-    },
-    onResume: (message) async {
+    }, onResume: (message) async {
       print('onResume : $message');
-    },
-    onLaunch: (message) async {
+    }, onLaunch: (message) async {
       print('onResume: $message');
-      Navigator.push(context, MaterialPageRoute(
-        builder: (context) => WebViewExample()));
-    }
-  );
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => WebViewExample()));
+    });
+  }
 
-}
+  var fcmToken;
+  void subscribeToTopic() {
+    _firebaseMessaging.getToken().then((token) {
+      print(token);
+      fcmToken = token;
+    
+      _firebaseMessaging.subscribeToTopic(token);
+      // _firebaseMessaging.subscribeToTopic('all');
+      
+     
+     
+    });
+  }
+// Future<bool> callOnFcmApiSendPushNotifications(List <String> userToken) async {
 
-void subscribeToTopic() {
-  _firebaseMessaging.subscribeToTopic('topic');
-}
-void getDeviceToken() async {
- String deviceToken = await _firebaseMessaging.getToken();
- print(deviceToken);
-}
-Future<void> disableCapture() async {
-      await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
-    }
+//   final postUrl = 'https://fcm.googleapis.com/fcm/send';
+//   final data = {
+//     "registration_ids" : userToken,
+//     "collapse_key" : "type_a",
+//     "notification" : {
+//       "title": 'NewTextTitle',
+//       "body" : 'NewTextBody',
+//     }
+//   };
+
+//   final headers = {
+//     'content-type': 'application/json',
+//     'Authorization': constant.firebaseTokenAPIFCM // 'key=YOUR_SERVER_KEY'
+//   };
+
+//   final response = await http.post(postUrl,
+//       body: json.encode(data),
+//       encoding: Encoding.getByName('utf-8'),
+//       headers: headers);
+
+//   if (response.statusCode == 200) {
+//     // on success do sth
+//     print('test ok push CFM');
+//     return true;
+//   } else {
+//     print(' CFM error');
+//     // on failure do sth
+//     return false;
+//   }
+// }
+
+
+  void getDeviceToken() async {
+    String deviceToken = await _firebaseMessaging.getToken();
+    print(deviceToken);
+  }
+
+  Future<void> disableCapture() async {
+    await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       appBar: AppBar(
-        title: const Text('Emtehanat', style: TextStyle(color: Colors.black),),
+        title: const Text(
+          'Emtehanat',
+          style: TextStyle(color: Colors.black),
+        ),
         // This drop down menu demonstrates that Flutter widgets can be shown over the web view.
         actions: <Widget>[
           NavigationControls(_controller.future),
           // SampleMenu(_controller.future),
         ],
-        backgroundColor:Colors.white,
+        backgroundColor: Colors.white,
       ),
       // We're using a Builder here so we have a context that is below the Scaffold
       // to allow calling Scaffold.of(context) so we can show a snackbar.
       //https://www.emtehanat.net/ar/register
+      //https://www.emtehanat.net/ar/login/student/ post /
       //https://www.emtehanat.net
       body: SafeArea(
-              child: Builder(builder: (BuildContext context) {
+        child: Builder(builder: (BuildContext context) {
           return Padding(
             padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
             child: WebView(
-              initialUrl: 'https://www.emtehanat.net/ar/register',
-            
+              // initialUrl: 'https://www.emtehanat.net/ar/login',
+
               javascriptMode: JavascriptMode.unrestricted,
               onWebViewCreated: (WebViewController webViewController) {
                 _controller.complete(webViewController);
+                
                 //  Map<String, String> headers = {"Authorization": "Bearer " + 'jwt'};
-                // webViewController.loadUrl('https://www.emtehanat.net/ar/register', headers: headers);
+                //https://www.emtehanat.net/ar/login/student/ ?fcm_token==
+
+                var endpointUrl = 'https://emtehanat.net/ar/login';
+                Map<String, String> queryParams = {'fcm_token': '${fcmToken}'};
+
+                String queryString = Uri(queryParameters: queryParams).query;
+
+                var requestUrl = endpointUrl + '?' + queryString;
+
+                webViewController.loadUrl(requestUrl);
               },
               // TODO(iskakaushik): Remove this when collection literals makes it to stable.
               // ignore: prefer_collection_literals
@@ -184,11 +216,38 @@ Future<void> disableCapture() async {
                   print('blocking navigation to $request}');
                   return NavigationDecision.navigate;
                 }
+               else  if (request.url.startsWith('https://emtehanat.net/ar/exams/searching')) {
+                  print("yesthisissearchitemwillgogogoogog");
+                   
+                  return NavigationDecision.navigate;
+                } 
                 print('allowing navigation to $request');
                 return NavigationDecision.navigate;
+
+
+
+
+
+
+
+
+
+
+
+
+                
               },
               onPageStarted: (String url) {
-                print('Page started loading: $url');
+               
+                if (url == 'https://emtehanat.net/ar/exams/searching') {
+                  print("yeysysysyysysysyysysyysysysys");
+
+                } else {
+                  print("nonononoonononononono");
+
+
+                }
+                // print('Page started loading: $url');
               },
               onPageFinished: (String url) {
                 print('Page finished loading: $url');
@@ -212,7 +271,6 @@ Future<void> disableCapture() async {
           );
         });
   }
-
 }
 
 enum MenuOptions {
@@ -227,6 +285,7 @@ enum MenuOptions {
 
 class SampleMenu extends StatelessWidget {
   SampleMenu(this.controller);
+  final flutterWebviewPlugin = new WebView();
 
   final Future<WebViewController> controller;
   final CookieManager cookieManager = CookieManager();
@@ -358,7 +417,7 @@ class SampleMenu extends StatelessWidget {
       content: Text(message),
     ));
   }
-  
+
   // void _onNavigationDelegateExample(
   //     WebViewController controller, BuildContext context) async {
   //   final String contentBase64 =
@@ -381,16 +440,21 @@ class SampleMenu extends StatelessWidget {
   }
 }
 
-class NavigationControls extends StatelessWidget {
+class NavigationControls extends StatefulWidget {
   const NavigationControls(this._webViewControllerFuture)
       : assert(_webViewControllerFuture != null);
 
   final Future<WebViewController> _webViewControllerFuture;
 
   @override
+  _NavigationControlsState createState() => _NavigationControlsState();
+}
+
+class _NavigationControlsState extends State<NavigationControls> {
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<WebViewController>(
-      future: _webViewControllerFuture,
+      future: widget._webViewControllerFuture,
       builder:
           (BuildContext context, AsyncSnapshot<WebViewController> snapshot) {
         final bool webViewReady =
@@ -431,18 +495,20 @@ class NavigationControls extends StatelessWidget {
             //           }
             //         },
             // ),
-            // IconButton(
-            //   icon: const Icon(Icons.replay, color: Colors.black,),
-            //   onPressed: !webViewReady
-            //       ? null
-            //       : () {
-            //           controller.reload();
-            //         },
-            // ),
+            IconButton(
+              icon: const Icon(
+                Icons.replay,
+                color: Colors.black,
+              ),
+              onPressed: !webViewReady
+                  ? null
+                  : () {
+                      controller.reload();
+                    },
+            ),
           ],
         );
       },
     );
   }
 }
-
