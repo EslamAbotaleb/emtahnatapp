@@ -1,33 +1,33 @@
 {
   "project_info": {
-    "project_number": "139096397361",
-    "project_id": "emtahnatapp",
-    "storage_bucket": "emtahnatapp.appspot.com"
+    "project_number": "66598164701",
+    "project_id": "emtehanat-8e931",
+    "storage_bucket": "emtehanat-8e931.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:139096397361:android:a1a780db540a28b7172710",
+        "mobilesdk_app_id": "1:66598164701:android:20e6bb0bb1d79b39a5e334",
         "android_client_info": {
           "package_name": "com.emtahnatapp.eg"
         }
       },
       "oauth_client": [
         {
-          "client_id": "139096397361-ci23pmml2hrckcq4dc7njhvua75sl01k.apps.googleusercontent.com",
+          "client_id": "66598164701-8i3necdug11i7p630j2jl42o5jsbuq0v.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDAG5LOrxP7WOA6d53lrn0_mEIiX14ndWQ"
+          "current_key": "AIzaSyDjdjhEmP1l7VoBWaIMUeeT9Rhq0tV5bSg"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "139096397361-ci23pmml2hrckcq4dc7njhvua75sl01k.apps.googleusercontent.com",
+              "client_id": "66598164701-8i3necdug11i7p630j2jl42o5jsbuq0v.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
