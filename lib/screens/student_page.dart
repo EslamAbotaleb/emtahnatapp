@@ -817,8 +817,8 @@ class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
 
                         //   var requestUrl = endpointUrl + '?' + queryString;
 
-                        //   var data =
-                        //       "fcm_token=${fcmToken}&device_id=${deviceId}";
+                          // var data =
+                          //     "fcm_token=${fcmToken}&device_id=${deviceId}";
 
                         //   controller.postUrl(
                         //       url: Uri.parse(endpointUrl),

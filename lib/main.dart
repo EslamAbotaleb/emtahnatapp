@@ -11,6 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
@@ -359,15 +360,14 @@ class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
 
                       pullToRefreshController: pullToRefreshController,
                       onWebViewCreated: (controller) {
-                        print("onWebViewCreatedonWebViewCreated");
-
+                          
                         webViewController = controller;
+                       
                       },
                       onLoadStart: (controller, url) {
                         setState(() {
                           this.url = url.toString();
                           urlController.text = this.url;
-                          print("displayurlwillstarted${urlController.text}");
                         });
                       },
                       androidOnPermissionRequest:
@@ -406,9 +406,14 @@ class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
                                 IOSWKNavigationType.LINK_ACTIVATED) {
                           if (uri.toString().startsWith(
                               'https://www.emtehanat.net/ar/register/student')) {
+                                print("callllledregisterstudent");
                             var url = Uri.parse(
                                 'https://www.emtehanat.net/ar/register/student');
-
+                          //   var data =
+                          //       "fcm_token=${fcmToken}&device_id=${deviceId}";
+                          // print("loadposturl${controller.postUrl(url: url, postData: utf8.encode(data))}");
+                          //   await controller.postUrl(
+                          //       url: url, postData: utf8.encode(data));
                             var queryParams = ((url.hasQuery) ? '&' : '?') +
                                 "fcm_token=" +
                                 '${fcmToken}' +
@@ -424,9 +429,8 @@ class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
                             return NavigationActionPolicy.ALLOW;
                           } else if (uri.toString().startsWith(
                               'https://www.emtehanat.net/ar/login/student')) {
-                            var url = Uri.parse(
+                                  var url = Uri.parse(
                                 'https://www.emtehanat.net/ar/login/student');
-
                             var queryParams = ((url.hasQuery) ? '&' : '?') +
                                 "fcm_token=" +
                                 '${fcmToken}' +
@@ -439,10 +443,21 @@ class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
                             // await controller.loadUrl(url: newUrl);
                             await controller.loadUrl(
                                 urlRequest: URLRequest(url: Uri.parse(newUrl)));
+
+                            // var url = Uri.parse(
+                            //     'https://www.emtehanat.net/ar/login/student');
+
+                            // var data =
+                            //     "fcm_token=${fcmToken}&device_id=${deviceId}";
+
+                            // await controller.postUrl(
+                            //     url: url, postData: utf8.encode(data));
+
                             return NavigationActionPolicy.ALLOW;
                           } else if (uri.toString().startsWith(
                               'https://www.emtehanat.net/ar/login')) {
-                            var url =
+
+                                   var url =
                                 Uri.parse('https://www.emtehanat.net/ar/login');
 
                             var queryParams = ((url.hasQuery) ? '&' : '?') +
@@ -453,9 +468,18 @@ class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
                                 '${deviceId}';
                             var newUrl = 'https://www.emtehanat.net/ar/login' +
                                 queryParams;
-                            // await controller.loadUrl(url: newUrl);
+                            // // await controller.loadUrl(url: newUrl);
                             await controller.loadUrl(
                                 urlRequest: URLRequest(url: Uri.parse(newUrl)));
+
+                         
+
+                            // var data =
+                            //     "fcm_token=${fcmToken}&device_id=${deviceId}";
+
+                            // await controller.postUrl(
+                            //     url: url, postData: utf8.encode(data));
+
                             return NavigationActionPolicy.ALLOW;
                           } else if (uri.toString().startsWith(
                               'https://www.emtehanat.net/ar/register')) {
@@ -468,16 +492,22 @@ class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
                                 "&" +
                                 "device_id=" +
                                 '${deviceId}';
+
                             var newUrl =
                                 'https://www.emtehanat.net/ar/register' +
                                     queryParams;
+                                    
                             // var postData = Uint8List.fromList(utf8.encode(
                             //     "fcm_token=${fcmToken}&device_id=${deviceId}"));
                             // controller.postUrl(
                             //     url: Uri.parse(
                             //         "https://www.emtehanat.net/ar/register"),
                             //     postData: postData);
+                            // var data =
+                            //     "fcm_token=${fcmToken}&device_id=${deviceId}";
 
+                            // await controller.postUrl(
+                            //     url: url, postData: utf8.encode(data));
                             await controller.loadUrl(
                                 urlRequest: URLRequest(url: Uri.parse(newUrl)));
                             return NavigationActionPolicy.ALLOW;
