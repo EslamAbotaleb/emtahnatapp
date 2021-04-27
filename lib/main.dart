@@ -1,24 +1,51 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info/device_info.dart';
+
 import 'package:emtahnatapp/screens/student_page.dart';
 import 'package:emtahnatapp/workmanager.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart' show kReleaseMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_windowmanager/flutter_windowmanager.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:webview_cookie_manager/webview_cookie_manager.dart';
 
 const myTask = "syncWithTheBackEnd";
+
+Future main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
+  if (kDebugMode) {
+    FirebaseCrashlytics.instance
+        .setCrashlyticsCollectionEnabled(false); //disable false
+  } else {
+    FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+  }
+// enableInDevMode
+  if (!kReleaseMode)
+    FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+// Pass all uncaught errors from the framework to Crashlytics.
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
+  runZoned(() {
+    runApp(EmtehanatPage(url: 'https://emtehanat.net/ar/mobile-home'));
+
+    // runApp(DisplayContentRequest());
+  }, onError: (error) {
+    // print(error);
+    print("It's not so bad but good in this also not so big.");
+    print("Problem still exists: $error");
+    // FirebaseCrashlytics.instance.recordFlutterError;
+  });
+}
 
 void callbackDispatcher() {
   Workmanager.executeTask((task, inputData) async {
@@ -36,6 +63,7 @@ void callbackDispatcher() {
   });
 }
 
+/*
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -44,35 +72,43 @@ Future main() async {
     "1",
     myTask, //This is the value that will be returned in the callbackDispatcher
     initialDelay: Duration(minutes: 5),
-    // constraints: WorkManagerConstraintConfig(
-    //   requiresCharging: true,
-    //   networkType: NetworkType.connected,
-    // ),
+    constraints: WorkManagerConstraintConfig(
+      requiresCharging: true,
+      networkType: NetworkType.connected,
+    ),
   );
-  if (Platform.isAndroid) {
-    await AndroidInAppWebViewController.setWebContentsDebuggingEnabled(true);
-  }
+  // if (Platform.isAndroid) {
+  //   await AndroidInAppWebViewController.setWebContentsDebuggingEnabled(true);
+  // }
   if (!kReleaseMode)
     FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
 // Pass all uncaught errors from the framework to Crashlytics.
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
   runZoned(() {
-    runApp(EmtahnatApp());
+    runApp(StudentPage(
+      url: 'https://www.emtehanat.net/ar/login',
+    ));
   }, onError: (error) {
     // print(error);
     print("It's not so bad but good in this also not so big.");
     print("Problem still exists: $error");
     // FirebaseCrashlytics.instance.recordFlutterError;
   });
-  // runApp(new EmtahnatApp());
+  // runApp(new DisplayContentRequest());
 }
+*/
 
-class EmtahnatApp extends StatefulWidget {
+class DisplayContentRequest extends StatefulWidget {
+  final String url;
+  final String fcmToken;
+  const DisplayContentRequest({this.url,this.fcmToken, Key key});
   @override
-  _EmtahnatAppState createState() => new _EmtahnatAppState();
+  _DisplayContentRequestState createState() =>
+      new _DisplayContentRequestState();
 }
 
-class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
+class _DisplayContentRequestState extends State<DisplayContentRequest>
+    with WidgetsBindingObserver {
   // AppLifecycleState _notification;
   final GlobalKey webViewKey = GlobalKey();
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
@@ -97,12 +133,13 @@ class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
   String url = "";
   double progress = 0;
   final urlController = TextEditingController();
+  final cookieManager = WebviewCookieManager();
 
   DateTime backButtonTime;
   void _showLockScreenDialog() {
     _navigatorKey.currentState
         .pushReplacement(new MaterialPageRoute(builder: (BuildContext context) {
-      return LoginPage();
+      return DisplayContentRequest();
     }));
   }
 
@@ -131,12 +168,15 @@ class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
     );
     SystemChannels.textInput.invokeMethod('TextInput.hide');
 
-    // disableCapture();
+    disableCapture();
     configureCallbacks();
-    subscribeToTopic();
+    // subscribeToTopic();
     _getDeviceId();
   }
 
+  Future<void> disableCapture() async {
+    await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+  }
   void configureCallbacks() {
     _firebaseMessaging.configure(onMessage: (message) async {
       print('onMessage:$message');
@@ -144,8 +184,8 @@ class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
       print('onResume : $message');
     }, onLaunch: (message) async {
       print('onResume: $message');
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => EmtahnatApp()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (context) => DisplayContentRequest()));
     });
   }
 
@@ -178,26 +218,19 @@ class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
     //  SystemChannels.platform.invokeMethod('SystemNavigator.pop');
   }
 
-  Key key = UniqueKey();
+  
+  // Future<bool> _willPop() async {
+  //   DateTime currentTime = DateTime.now();
+  //   bool backButton = backButtonTime == null ||
+  //       currentTime.difference(backButtonTime) > Duration(seconds: 4);
+  //   if (backButton) {
+  //     backButtonTime = currentTime;
+  //     print("must press double tapped to close");
+  //     return false;
+  //   }
 
-  void restartApp() {
-    setState(() {
-      key = UniqueKey();
-    });
-  }
-
-  Future<bool> _willPop() async {
-    DateTime currentTime = DateTime.now();
-    bool backButton = backButtonTime == null ||
-        currentTime.difference(backButtonTime) > Duration(seconds: 4);
-    if (backButton) {
-      backButtonTime = currentTime;
-      print("must press double tapped to close");
-      return false;
-    }
-
-    return true;
-  }
+  //   return true;
+  // }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -238,28 +271,30 @@ class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
 
   Future<String> _getId() async {
     var deviceInfo = DeviceInfoPlugin();
-    if (Platform.isIOS) {
-      // import 'dart:io'
-      var iosDeviceInfo = await deviceInfo.iosInfo;
-      return iosDeviceInfo.identifierForVendor; // unique ID on iOS
-    } else {
+    // if (Platform.isIOS) {
+    //   // import 'dart:io'
+    //   var iosDeviceInfo = await deviceInfo.iosInfo;
+    //   return iosDeviceInfo.identifierForVendor; // unique ID on iOS
+    // } else {
       var androidDeviceInfo = await deviceInfo.androidInfo;
       return androidDeviceInfo.androidId; // unique ID on Android
-    }
+    // }
   }
+
+  CookieManager _cookieManager = CookieManager.instance();
 
   @override
   Widget build(BuildContext context) {
-    var endpointUrl = 'https://www.emtehanat.net/ar/login';
-    Map<String, String> queryParams = {
-      'fcm_token': '${fcmToken}',
-      "device_id": '${deviceId}'
-    };
+    // var endpointUrl = 'https://www.emtehanat.net/ar/login';
+    // Map<String, String> queryParams = {
+    //   'fcm_token': '${fcmToken}',
+    //   "device_id": '${deviceId}'
+    // };
 
-    String queryString = Uri(queryParameters: queryParams).query;
+    // String queryString = Uri(queryParameters: queryParams).query;
 
-    var requestUrl = endpointUrl + '?' + queryString;
-
+    // var requestUrl = endpointUrl + '?' + queryString;
+    print("Fewjfnlewifhewfhe${widget.fcmToken.toString()}");
     return MaterialApp(
       navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
@@ -270,221 +305,133 @@ class _EmtahnatAppState extends State<EmtahnatApp> with WidgetsBindingObserver {
                 "Emtehanat",
                 style: TextStyle(color: Colors.black),
               )),
-          body: WillPopScope(
-            onWillPop: () async => showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                        title: Text('Are you sure you want to quit?'),
-                        actions: <Widget>[
-                          RaisedButton(
-                              child: Text('ok'),
-                              onPressed: () => Navigator.of(context).pop(true)),
-                          RaisedButton(
-                              child: Text('cancel'),
-                              onPressed: () =>
-                                  Navigator.of(context).pop(false)),
-                        ])),
-            child: SafeArea(
-                child: Column(children: <Widget>[
-              Expanded(
-                child: Stack(
-                  children: [
-                    InAppWebView(
-                      key: webViewKey,
-                      initialUrlRequest: URLRequest(url: Uri.parse(requestUrl)),
-                      initialUserScripts: UnmodifiableListView<UserScript>([]),
-                      initialOptions: options,
-                      pullToRefreshController: pullToRefreshController,
-                      onWebViewCreated: (controller) {
-                        webViewController = controller;
-                      },
-                      onLoadStart: (controller, url) {
-                        setState(() {
-                          this.url = url.toString();
-                          urlController.text = this.url;
-                        });
-                      },
-                      androidOnPermissionRequest:
-                          (controller, origin, resources) async {
-                        return PermissionRequestResponse(
-                            resources: resources,
-                            action: PermissionRequestResponseAction.GRANT);
-                      },
-                      shouldOverrideUrlLoading:
-                          (InAppWebViewController controller,
-                              shouldOverrideUrlLoadingRequest) async {
-                        var uri = shouldOverrideUrlLoadingRequest.request.url;
+          body: SafeArea(
+              child: Column(children: <Widget>[
+            Expanded(
+              child: Stack(
+                children: [
+                  InAppWebView(
+                    key: webViewKey,
+                    initialUrlRequest: URLRequest(
+                        url: Uri.parse(widget.url),
+                        // headers: {
+                        //   'fcm_token': fcmToken.toString(),
+                        //   'device_id': deviceId.toString()
+                        // }
+                        ),
+                    initialUserScripts: UnmodifiableListView<UserScript>([]),
+                    initialOptions: options,
+                    pullToRefreshController: pullToRefreshController,
+                    onWebViewCreated: (controller) async {
+                      webViewController = controller;
+                    
+                      await _cookieManager.setCookie(
+                          url: Uri.parse(widget.url),
+                          name: 'fcm_token',
+                          value: widget.fcmToken.toString(),
+                         );
+                      await _cookieManager.setCookie(
+                          url: Uri.parse(widget.url),
+                          name: 'device_id',
+                          value: deviceId.toString(),
+                         );
 
-                        if (![
-                          "http",
-                          "https",
-                          "file",
-                          "chrome",
-                          "data",
-                          "javascript",
-                          "about"
-                        ].contains(uri.scheme)) {
-                          if (await canLaunch(url)) {
-                            // Launch the App
-                            await launch(
-                              url,
-                            );
-                            // and cancel the request
-                            return NavigationActionPolicy.CANCEL;
-                          }
+                        
+                      // webViewController.evaluateJavascript(
+                      //     source:
+                      //         'document.cookie = "fcm_token=${fcmToken.toString()}"');
+                    },
+                    onLoadStart: (controller, url) {
+                      setState(() {
+                        this.url = url.toString();
+                        urlController.text = this.url;
+                      });
+                    },
+                    androidOnPermissionRequest:
+                        (controller, origin, resources) async {
+                      return PermissionRequestResponse(
+                          resources: resources,
+                          action: PermissionRequestResponseAction.GRANT);
+                    },
+                    shouldOverrideUrlLoading:
+                        (InAppWebViewController controller,
+                            shouldOverrideUrlLoadingRequest) async {
+                      var uri = shouldOverrideUrlLoadingRequest.request.url;
+
+                      if (![
+                        "http",
+                        "https",
+                        "file",
+                        "chrome",
+                        "data",
+                        "javascript",
+                        "about"
+                      ].contains(uri.scheme)) {
+                        if (await canLaunch(url)) {
+                          // Launch the App
+                          await launch(
+                            url,
+                          );
+                          // and cancel the request
+                          return NavigationActionPolicy.CANCEL;
                         }
-                        if (uri.toString().startsWith(
-                            'https://www.emtehanat.net/ar/register/student')) {
-                          controller.loadUrl(
-                            urlRequest: URLRequest(
-                                url: Uri.parse(
-                                    'https://www.emtehanat.net/ar/register/student'),
-                                headers: {
-                                  'fcm_token': fcmToken,
-                                  'device_id': deviceId
-                                }),
-                          );
+                      }
+                
+                      return NavigationActionPolicy.ALLOW;
+                    },
+                    onLoadStop: (controller, url) async {
+                      pullToRefreshController.endRefreshing();
+                      setState(() {
+                        this.url = url.toString();
+                        urlController.text = this.url;
+                      });
+                      List<Cookie> cookies = await _cookieManager.getCookies(
+                          url: Uri.parse(widget.url));
+                      cookies.forEach((cookie) {
+                        print(cookie.name + " " + cookie.value);
+                        // cookie.value = fcmToken.toString();
+                      });
+                      // List<Cookie> cookies = await _cookieManager.setCookie(url: Uri.parse(widget.url), name: 'name', value: 'value');
 
-                          return NavigationActionPolicy.CANCEL;
-                        } else if (uri.toString().startsWith(
-                            'https://www.emtehanat.net/ar/login/student')) {
-                          controller.loadUrl(
-                            urlRequest: URLRequest(
-                                url: Uri.parse(
-                                    'https://www.emtehanat.net/ar/login/student'),
-                                headers: {
-                                  'fcm_token': fcmToken,
-                                  'device_id': deviceId
-                                }),
-                          );
-                          return NavigationActionPolicy.CANCEL;
-                        } else  if (uri.toString().startsWith(
-                            'https://www.emtehanat.net/en/register/student')) {
-                          controller.loadUrl(
-                            urlRequest: URLRequest(
-                                url: Uri.parse(
-                                    'https://www.emtehanat.net/en/register/student'),
-                                headers: {
-                                  'fcm_token': fcmToken,
-                                  'device_id': deviceId
-                                }),
-                          );
-
-                          return NavigationActionPolicy.CANCEL;
-                        } else if (uri.toString().startsWith(
-                            'https://www.emtehanat.net/en/login/student')) {
-                          controller.loadUrl(
-                            urlRequest: URLRequest(
-                                url: Uri.parse(
-                                    'https://www.emtehanat.net/en/login/student'),
-                                headers: {
-                                  'fcm_token': fcmToken,
-                                  'device_id': deviceId
-                                }),
-                          );
-                          return NavigationActionPolicy.CANCEL;
-                        } else if (uri.toString().startsWith(
-                            'https://www.emtehanat.net/ar/register')) {
-                          print("fewhifwehfeifheifheifefefe");
-                          var url = Uri.parse(
-                              'https://www.emtehanat.net/ar/register');
-                          var queryParams = ((url.hasQuery) ? '&' : '?') +
-                              "fcm_token=" +
-                              '${fcmToken}' +
-                              "&" +
-                              "device_id=" +
-                              '${deviceId}';
-
-                          var newUrl = 'https://www.emtehanat.net/ar/register' +
-                              queryParams;
-
-                          controller.loadUrl(
-                              urlRequest: URLRequest(url: Uri.parse(newUrl)));
-                          return NavigationActionPolicy.ALLOW;
-                        } else if (uri
-                            .toString()
-                            .startsWith('https://www.emtehanat.net/ar/login')) {
-                          var url =
-                              Uri.parse('https://www.emtehanat.net/ar/login');
-                          var queryParams = ((url.hasQuery) ? '&' : '?') +
-                              "fcm_token=" +
-                              '${fcmToken}' +
-                              "&" +
-                              "device_id=" +
-                              '${deviceId}';
-
-                          var newUrl = 'https://www.emtehanat.net/ar/login' +
-                              queryParams;
-
-                          controller.loadUrl(
-                              urlRequest: URLRequest(url: Uri.parse(newUrl)));
-                          return NavigationActionPolicy.ALLOW;
-                        }
-
-                        return NavigationActionPolicy.ALLOW;
-                      },
-                      onLoadStop: (controller, url) async {
+                      //           await _cookieManager.setCookies([
+                      // Cookie('cookieName', 'cookieValue')
+                      //   ..domain = 'youtube.com'
+                      //   ..expires = DateTime.now().add(Duration(days: 10))
+                      //   ..httpOnly = false
+                      // ]);
+                    },
+                    onLoadError: (controller, url, code, message) {
+                      pullToRefreshController.endRefreshing();
+                    },
+                    onProgressChanged: (controller, progress) {
+                      if (progress == 100) {
                         pullToRefreshController.endRefreshing();
-                        setState(() {
-                          this.url = url.toString();
-                          urlController.text = this.url;
-                        });
-                      },
-                      onLoadError: (controller, url, code, message) {
-                        pullToRefreshController.endRefreshing();
-                      },
-                      onProgressChanged: (controller, progress) {
-                        if (progress == 100) {
-                          pullToRefreshController.endRefreshing();
-                        }
-                        setState(() {
-                          this.progress = progress / 100;
+                      }
+                      setState(() {
+                        this.progress = progress / 100;
 
-                          urlController.text = this.url;
-                        });
-                      },
-                      onUpdateVisitedHistory:
-                          (controller, url, androidIsReload) {
-                        setState(() {
-                          this.url = url.toString();
-                          urlController.text = this.url;
-                        });
-                      },
-                      onConsoleMessage: (controller, consoleMessage) {
-                        print(consoleMessage);
-                      },
-                    ),
-                    progress < 1.0
-                        ? LinearProgressIndicator(value: progress)
-                        : Container(),
-                  ],
-                ),
+                        urlController.text = this.url;
+                      });
+                    },
+                    onUpdateVisitedHistory:
+                        (controller, url, androidIsReload) {
+                      setState(() {
+                        this.url = url.toString();
+                        urlController.text = this.url;
+                      });
+                    },
+                    onConsoleMessage: (controller, consoleMessage) {
+                      print(consoleMessage);
+                    },
+                  ),
+                  progress < 1.0
+                      ? LinearProgressIndicator(value: progress)
+                      : Container(),
+                ],
               ),
-              // ButtonBar(
-              //   alignment: MainAxisAlignment.center,
-              //   children: <Widget>[
-              //     ElevatedButton(
-              //       child: Icon(Icons.arrow_back),
-              //       onPressed: () {
-              //         webViewController?.goBack();
-              //       },
-              //     ),
-              //     ElevatedButton(
-              //       child: Icon(Icons.arrow_forward),
-              //       onPressed: () {
-              //         webViewController?.goForward();
-              //       },
-              //     ),
-              //     ElevatedButton(
-              //       child: Icon(Icons.refresh),
-              //       onPressed: () {
-              //         webViewController?.reload();
-              //       },
-              //     ),
-              //   ],
-              // ),
-            ])),
-          )),
+            ),
+         
+          ]))),
     );
   }
 }
