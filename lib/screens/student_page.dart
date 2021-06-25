@@ -1,7 +1,6 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:emtahnatapp/main.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -22,7 +21,38 @@ class _EmtehanatPageState extends State<EmtehanatPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+        initDynamicLinks();
+
     // FirebaseCrashlytics.instance.crash();
+  }
+ Future<void> initDynamicLinks() async {
+    FirebaseDynamicLinks.instance.onLink(
+        onSuccess: (PendingDynamicLinkData dynamicLink) async {
+      final Uri deepLink = dynamicLink?.link;
+
+      if (deepLink != null) {
+        // ignore: unawaited_futures
+        // Navigator.pushNamed(context, deepLink.path);
+      
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => EmtehanatPage(url: deepLink.path)));
+        
+      }
+      // _createDynamicLink(false);
+    }, onError: (OnLinkErrorException e) async {
+      print('onLinkError');
+      print(e.message);
+    });
+
+    final PendingDynamicLinkData data =
+        await FirebaseDynamicLinks.instance.getInitialLink();
+    final Uri deepLink = data?.link;
+
+    if (deepLink != null) {
+      // ignore: unawaited_futures
+      // Navigator.pushNamed(context, deepLink.path);
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => EmtehanatPage(url: deepLink.path)));
+
+    }
   }
 
   @override
@@ -189,6 +219,7 @@ class _WebViewExampleState extends State<WebViewExample> {
                 _toasterJavascriptChannel(context),
               ].toSet(),
               navigationDelegate: (NavigationRequest request) {
+                
                 Navigator.push(
                   context,
                   MaterialPageRoute(

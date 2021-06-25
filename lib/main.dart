@@ -9,12 +9,14 @@ import 'package:emtahnatapp/workmanager.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_windowmanager/flutter_windowmanager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_cookie_manager/webview_cookie_manager.dart';
 
@@ -101,7 +103,7 @@ Future main() async {
 class DisplayContentRequest extends StatefulWidget {
   final String url;
   final String fcmToken;
-  const DisplayContentRequest({this.url,this.fcmToken, Key key});
+  const DisplayContentRequest({this.url, this.fcmToken, Key key});
   @override
   _DisplayContentRequestState createState() =>
       new _DisplayContentRequestState();
@@ -115,7 +117,7 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   InAppWebViewController webViewController;
   StreamController<bool> _showLockScreenStream = StreamController();
-  StreamSubscription _showLockScreenSubs;
+  // StreamSubscription _showLockScreenSubs;
   GlobalKey<NavigatorState> _navigatorKey = GlobalKey();
   InAppWebViewGroupOptions options = InAppWebViewGroupOptions(
       crossPlatform: InAppWebViewOptions(
@@ -131,6 +133,8 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
 
   PullToRefreshController pullToRefreshController;
   String url = "";
+  String _linkMessage;
+  bool _isCreatingLink = false;
   double progress = 0;
   final urlController = TextEditingController();
   final cookieManager = WebviewCookieManager();
@@ -147,11 +151,13 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _showLockScreenSubs = _showLockScreenStream.stream.listen((bool show) {
-      if (mounted && show) {
-        _showLockScreenDialog();
-      }
-    });
+
+    // _showLockScreenSubs = _showLockScreenStream.stream.listen((bool show) {
+    //   if (mounted && show) {
+    //     _showLockScreenDialog();
+    //   }
+    // });
+    // initDynamicLinks();
 
     pullToRefreshController = PullToRefreshController(
       options: PullToRefreshOptions(
@@ -177,6 +183,7 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
   Future<void> disableCapture() async {
     await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
   }
+
   void configureCallbacks() {
     _firebaseMessaging.configure(onMessage: (message) async {
       print('onMessage:$message');
@@ -195,10 +202,16 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
     _firebaseMessaging.getToken().then((token) {
       print(token);
       fcmToken = token;
+      _saveTokenInShared(fcmToken.toString());
       _saveDeviceToken();
 
       // _firebaseMessaging.subscribeToTopic(token);
     });
+  }
+
+  _saveTokenInShared(String token) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('fcmToken', token);
   }
 
   void getDeviceToken() async {
@@ -211,14 +224,13 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
   void dispose() {
     super.dispose();
     WidgetsBinding.instance.removeObserver(this);
-    _showLockScreenSubs?.cancel();
+    // _showLockScreenSubs?.cancel();
     this.fcmToken = null;
     this.deviceId = null;
 
     //  SystemChannels.platform.invokeMethod('SystemNavigator.pop');
   }
 
-  
   // Future<bool> _willPop() async {
   //   DateTime currentTime = DateTime.now();
   //   bool backButton = backButtonTime == null ||
@@ -235,8 +247,11 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    _createDynamicLink(true);
+
     if (state == AppLifecycleState.resumed) {
       print("resume");
+      // _createDynamicLink(false);
 
       _showLockScreenStream.add(true);
     }
@@ -276,8 +291,8 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
     //   var iosDeviceInfo = await deviceInfo.iosInfo;
     //   return iosDeviceInfo.identifierForVendor; // unique ID on iOS
     // } else {
-      var androidDeviceInfo = await deviceInfo.androidInfo;
-      return androidDeviceInfo.androidId; // unique ID on Android
+    var androidDeviceInfo = await deviceInfo.androidInfo;
+    return androidDeviceInfo.androidId; // unique ID on Android
     // }
   }
 
@@ -294,7 +309,7 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
     // String queryString = Uri(queryParameters: queryParams).query;
 
     // var requestUrl = endpointUrl + '?' + queryString;
-    print("Fewjfnlewifhewfhe${widget.fcmToken.toString()}");
+    print("fcmTokenfcmToken${widget.fcmToken.toString()}");
     return MaterialApp(
       navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
@@ -313,30 +328,29 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
                   InAppWebView(
                     key: webViewKey,
                     initialUrlRequest: URLRequest(
-                        url: Uri.parse(widget.url),
-                        // headers: {
-                        //   'fcm_token': fcmToken.toString(),
-                        //   'device_id': deviceId.toString()
-                        // }
-                        ),
+                      url: Uri.parse(widget.url),
+                      // headers: {
+                      //   'fcm_token': fcmToken.toString(),
+                      //   'device_id': deviceId.toString()
+                      // }
+                    ),
                     initialUserScripts: UnmodifiableListView<UserScript>([]),
                     initialOptions: options,
                     pullToRefreshController: pullToRefreshController,
                     onWebViewCreated: (controller) async {
                       webViewController = controller;
-                    
-                      await _cookieManager.setCookie(
-                          url: Uri.parse(widget.url),
-                          name: 'fcm_token',
-                          value: widget.fcmToken.toString(),
-                         );
-                      await _cookieManager.setCookie(
-                          url: Uri.parse(widget.url),
-                          name: 'device_id',
-                          value: deviceId.toString(),
-                         );
 
-                        
+                      await _cookieManager.setCookie(
+                        url: Uri.parse(widget.url),
+                        name: 'fcm_token',
+                        value: widget.fcmToken.toString(),
+                      );
+                      await _cookieManager.setCookie(
+                        url: Uri.parse(widget.url),
+                        name: 'device_id',
+                        value: deviceId.toString(),
+                      );
+
                       // webViewController.evaluateJavascript(
                       //     source:
                       //         'document.cookie = "fcm_token=${fcmToken.toString()}"');
@@ -376,7 +390,7 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
                           return NavigationActionPolicy.CANCEL;
                         }
                       }
-                
+
                       return NavigationActionPolicy.ALLOW;
                     },
                     onLoadStop: (controller, url) async {
@@ -413,8 +427,7 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
                         urlController.text = this.url;
                       });
                     },
-                    onUpdateVisitedHistory:
-                        (controller, url, androidIsReload) {
+                    onUpdateVisitedHistory: (controller, url, androidIsReload) {
                       setState(() {
                         this.url = url.toString();
                         urlController.text = this.url;
@@ -430,8 +443,107 @@ class _DisplayContentRequestState extends State<DisplayContentRequest>
                 ],
               ),
             ),
-         
           ]))),
     );
+  }
+
+  // void _handleDeepLink(PendingDynamicLinkData data) {
+  //   final Uri deepLink = data.link;
+  //   if (deepLink != null) {
+  //     print('_handleDeepLink | deeplink: $deepLink');
+
+  //     // var isPost = deepLink.pathSegments.contains('post');
+  //     // if (isPost) {
+  //     var title = deepLink.queryParameters['iho8'];
+  //     Navigator.pushNamed(context, deepLink.path);
+
+  //     // if (title != null) {}
+  //   }
+  // }
+
+  Future<void> initDynamicLinks() async {
+    FirebaseDynamicLinks.instance.onLink(
+        onSuccess: (PendingDynamicLinkData dynamicLink) async {
+      final Uri deepLink = dynamicLink?.link;
+
+      if (deepLink != null) {
+        // ignore: unawaited_futures
+        // Navigator.pushNamed(context, deepLink.path);
+      
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => EmtehanatPage(url: deepLink.path)));
+        
+      }
+      // _createDynamicLink(false);
+    }, onError: (OnLinkErrorException e) async {
+      print('onLinkError');
+      print(e.message);
+    });
+
+    final PendingDynamicLinkData data =
+        await FirebaseDynamicLinks.instance.getInitialLink();
+    final Uri deepLink = data?.link;
+
+    if (deepLink != null) {
+      // ignore: unawaited_futures
+      // Navigator.pushNamed(context, deepLink.path);
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => EmtehanatPage(url: deepLink.path)));
+
+    }
+  }
+
+  Future<void> _createDynamicLink(bool short) async {
+    setState(() {
+      _isCreatingLink = true;
+    });
+
+    final DynamicLinkParameters parameters = DynamicLinkParameters(
+      uriPrefix: 'https://emtahnatapp.page.link',
+      link: Uri.parse('https://emtahnatapp.page.link/iho8'),
+      androidParameters: AndroidParameters(
+        packageName: 'com.emtahnatapp.eg',
+        minimumVersion: 0,
+      ),
+
+      // iosParameters: IosParameters(
+      //   bundleId: 'com.google.FirebaseCppDynamicLinksTestApp.dev',
+      //   minimumVersion: '0',
+      // ),
+    );
+
+    Uri url;
+    if (short) {
+      final ShortDynamicLink shortLink = await parameters.buildShortLink();
+      url = shortLink.shortUrl;
+    } else {
+      url = await parameters.buildUrl();
+    }
+
+    setState(() {
+      _linkMessage = url.toString();
+      _isCreatingLink = false;
+    });
+  }
+}
+
+Future<void> retrieveDynamicLink(BuildContext context) async {
+  try {
+    final PendingDynamicLinkData data =
+        await FirebaseDynamicLinks.instance.getInitialLink();
+    final Uri deepLink = data?.link;
+
+    if (deepLink != null) {
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) =>
+              EmtehanatPage(url: 'https://emtehanat.net/ar/mobile-home')));
+    }
+
+    FirebaseDynamicLinks.instance.onLink(
+        onSuccess: (PendingDynamicLinkData dynamicLink) async {
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) =>
+              EmtehanatPage(url: 'https://emtehanat.net/ar/mobile-home')));
+    });
+  } catch (e) {
+    print(e.toString());
   }
 }
